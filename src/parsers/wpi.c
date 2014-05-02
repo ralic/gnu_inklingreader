@@ -54,6 +54,9 @@ static inline void mem_error ()
 GSList*
 p_wpi_parse (const char* filename)
 {
+  /* This variable counts the number of blocks parsed. */
+  int blocks = 0;
+
   /* Create a GSList (singly-linked list) that will be the return value of 
    * this function. */
   GSList* list = NULL;
@@ -140,6 +143,7 @@ p_wpi_parse (const char* filename)
 	 '--------------------------------------------------------*/
       case BLOCK_COORDINATE:
 	{
+	  blocks++;
 	  dt_coordinate* coordinate = malloc (sizeof (dt_coordinate));
 	  if (coordinate != NULL)
 	    {
@@ -165,6 +169,8 @@ p_wpi_parse (const char* filename)
 	       * move the other.) */
 	      count += 1;
 
+	      printf ("%-6d: %-13s: (x, y) = (%lf, %lf)\r\n",
+		      blocks, "COORDINATE", coordinate->x, coordinate->y);
 	      list = g_slist_prepend (list, coordinate);
 	    }
 	  else
@@ -179,6 +185,7 @@ p_wpi_parse (const char* filename)
 	 '--------------------------------------------------------*/
       case BLOCK_PRESSURE:
 	{
+	  blocks++;
 	  /* Make sure the block data has the expected size. */
 	  if (data[count + 1] == 6)
 	    {
@@ -190,6 +197,7 @@ p_wpi_parse (const char* filename)
 		  pressure->pressure = (int)data[count] << 8;
 		  pressure->pressure = pressure->pressure + data[count + 1];
 
+		  printf ("%-6d: %-13s: (%d)\r\n", blocks, "PRESSURE", pressure->pressure);
 		  list = g_slist_prepend (list, pressure);
 		}
 	      else
@@ -205,6 +213,7 @@ p_wpi_parse (const char* filename)
 	 '--------------------------------------------------------*/
       case BLOCK_TILT:
 	{
+	  blocks++;
 	  /* Make sure the block data has the expected size. */
 	  if (data[count + 1] == 6)
 	    {
@@ -217,6 +226,7 @@ p_wpi_parse (const char* filename)
 		  tilt->x = data[count];
 		  tilt->y = data[count + 1];
 
+		  printf ("%-6d: %-13s: (x, y) = (%lf, %lf)\r\n", blocks, "TILT", tilt->x, tilt->y);
 		  list = g_slist_prepend (list, tilt);
 		}
 	      else
@@ -234,8 +244,16 @@ p_wpi_parse (const char* filename)
       case 197:
       case 199:
 	{
+	  blocks++;
 	  int bytes = data[count + 1] - 2;
 
+	  printf ("%-6d: %-7s (%3d): %-3d: ", 
+		  blocks, "UNKNOWN", data[count], bytes + 2);
+	  int a = 0;
+	  for (; a <= bytes && a < 20; a++)
+	    printf ("%d ", data[count + 1 + a]);
+
+	  printf ("\r\n");
 	  /* Sometimes a block of data is reported to be 101 in length,
 	   * but that is wrong and causes data to be missed. So a simple
 	   * fix is to skip whenever the block size is bigger than 90. */
@@ -254,6 +272,7 @@ p_wpi_parse (const char* filename)
 	 '--------------------------------------------------------*/
       case BLOCK_STROKE:
 	{
+	  blocks++;
 	  /* Move up one position. */
 	  count++;
 
@@ -268,6 +287,7 @@ p_wpi_parse (const char* filename)
 	  stroke->type = TYPE_STROKE;
 	  stroke->value = data[count + 1];
 
+	  printf ("%-6d: %-13s: %-d\r\n", blocks, "STROKE", stroke->value);
 	  list = g_slist_prepend (list, stroke);
 	}
       }
